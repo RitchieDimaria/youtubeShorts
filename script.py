@@ -2,7 +2,7 @@
 from openai import OpenAI
 import os 
 import requests
-from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, CompositeVideoClip
+from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, ImageClip, CompositeVideoClip
 from gtts import gTTS 
 import random
 import math
@@ -94,6 +94,13 @@ def fetch_image(query):
         print(f"Error: {response.status_code}")
         return None
     
+def download_img(image_url, output_path='assets/temp_image.jpg'):
+    response = requests.get(image_url)
+    with open(output_path, 'wb') as f:
+        f.write(response.content)
+
+    return output_path
+    
 def split_text(text, num_parts):
     # Calculate the length of each part
     part_length = len(text) // num_parts
@@ -102,6 +109,19 @@ def split_text(text, num_parts):
     parts = [text[i * part_length:(i + 1) * part_length] for i in range(num_parts)]
 
     return parts
+
+def add_images(video_clip,image_urls, duration, num_images):
+    img_duration = (duration/num_images) - 1
+
+    for i in range(num_images):
+        print("adding an image")
+        image_path = download_img(image_urls[i], "assets/temp.png")
+        image_clip = ImageClip(image_path, duration=2)
+        start_time = img_duration*i + 1
+        image_clip = image_clip.set_start(start_time)
+        image_clip = image_clip.set_position(('center', 'center'))
+        video_clip = CompositeVideoClip([video_clip, image_clip])
+    return video_clip
 
     
 text = "Did you know the wattage of a lightbulb has nothing to do with its brightness? The wattage refers to the amount of energy the bulb uses to create light, while its brightness is determined by the lumens rating - the higher the lumens rating, the brighter the light. As a result, it's possible to buy bulbs that provide a brighter light than your existing ones while consuming the same amount of energy."
@@ -112,14 +132,24 @@ parts = split_text(text,num_images)
 
 for i in range(num_images):
     image_urls.append(fetch_image(parts[i]))
-    
 
-#tts(text)
-#audio_clip = get_audio_clip("assets/test.mp3")
-#duration = math.floor(audio_clip.duration) +1
-#transcript = transcribe("assets/test.mp3")
-#unedited_clip = parkour_clip(duration)
-#aptioned_clip = add_captions(transcript,unedited_clip)
-#captioned_clip = captioned_clip.set_audio(audio_clip)
-#resized_clip = captioned_clip.resize(width=720, height=1280)
-#resized_clip.write_videofile("./here.mp4", codec='libx264', audio_codec='aac',threads=8)
+
+print(image_urls)
+tts(text)
+audio_clip = get_audio_clip("assets/test.mp3")
+duration = math.floor(audio_clip.duration) +1
+transcript = transcribe("assets/test.mp3")
+unedited_clip = parkour_clip(duration)
+
+image_clip = add_images(unedited_clip,image_urls,duration,num_images)
+#unedited_clip.close()
+captioned_clip = add_captions(transcript,image_clip)
+#image_clip.close()
+captioned_clip = captioned_clip.set_audio(audio_clip)
+resized_clip = captioned_clip.resize(640, 480)
+#captioned_clip.close()
+resized_clip.write_videofile("./here.mp4", codec='libx264', audio_codec='aac',threads=4)
+#unedited_clip.close()
+#image_clip.close()
+#captioned_clip.close()
+resized_clip.close()
