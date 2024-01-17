@@ -9,7 +9,12 @@ import math
 import pvleopard
 import json
 import time
+import nltk
+from nltk import word_tokenize
+from nltk.corpus import stopwords
 
+#nltk.download('punkt')
+#nltk.download('stopwords')
 
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
@@ -125,14 +130,40 @@ def download_img(image_url, output_path='assets/temp_image.jpg'):
 
     return output_path
     
-def split_text(text, num_parts):
-    # Calculate the length of each part
-    part_length = len(text) // num_parts
+def split_list(input_list, num_splits):
+    # Calculate the approximate size of each split
+    avg_size = len(input_list) // num_splits
+    remainder = len(input_list) % num_splits
 
-    # Split the string into parts
-    parts = [text[i * part_length:(i + 1) * part_length] for i in range(num_parts)]
+    # Initialize the starting index
+    start = 0
 
-    return parts
+    # Split the list
+    splits = []
+    for _ in range(num_splits):
+        # Determine the size of the current split
+        split_size = avg_size + 1 if remainder > 0 else avg_size
+        remainder -= 1
+
+        # Extract the split from the original list
+        split = input_list[start:start + split_size]
+
+        # Update the starting index for the next split
+        start += split_size
+
+        # Append the split to the result
+        splits.append(split)
+
+    return splits
+def extract_keywords(text):
+    # Tokenize the text
+    words = word_tokenize(text.lower())
+
+    # Remove stopwords (common words that may not contribute much to meaning)
+    stop_words = set(stopwords.words('english'))
+    filtered_words = [word for word in words if word.isalnum() and word not in stop_words]
+
+    return filtered_words
 
 def add_images(video_clip,image_urls, duration, num_images):
     img_duration = (duration/num_images) - 1
@@ -151,10 +182,9 @@ def add_images(video_clip,image_urls, duration, num_images):
 
     
 text = gen_interesting_fact()
-
 image_urls = []
-num_images = 5
-parts = split_text(text,num_images)
+num_images = 4
+parts = split_list(extract_keywords(text),num_images)
 target_aspect_ratio = 9 / 16
 
 for i in range(num_images):
