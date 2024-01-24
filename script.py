@@ -2,7 +2,14 @@
 from openai import OpenAI
 import os 
 import requests
+
+ffmpeg_path = "./"  # Replace with the actual path
+
+# Set the IMAGEIO_FFMPEG_EXE environment variable
+os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
+
 from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, ImageClip, CompositeVideoClip
+from moviepy.config import change_settings
 from gtts import gTTS 
 import random
 import math
@@ -15,6 +22,8 @@ from nltk.corpus import stopwords
 
 #nltk.download('punkt')
 #nltk.download('stopwords')
+
+change_settings({"FFMPEG_BINARY": "./ffmpeg"})
 
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
@@ -172,11 +181,10 @@ def add_images(video_clip,image_urls, duration, num_images):
         print("adding an image")
         image_path = download_img(image_urls[i], "assets/temp.png")
         image_clip = ImageClip(image_path, duration=2)
-        image_clip_resized = image_clip.resize((640, 480))
         start_time = img_duration*i + 1
-        image_clip_resized = image_clip_resized.set_start(start_time)
-        image_clip_resized = image_clip_resized.set_position(('center', 'center'))
-        image_clips.append(image_clip_resized)
+        image_clip = image_clip.set_start(start_time)
+        image_clip = image_clip.set_position(('center', 'center'))
+        image_clips.append(image_clip)
     video_clip = CompositeVideoClip([video_clip] + image_clips)
     return video_clip
 
