@@ -3,6 +3,7 @@ from openai import OpenAI
 import os 
 import requests
 import sys
+from dotenv import load_dotenv
 
 ffmpeg_path = "./"  # Replace with the actual path
 
@@ -26,12 +27,10 @@ from nltk.corpus import stopwords
 
 change_settings({"FFMPEG_BINARY": "./ffmpeg"})
 
-with open('config.json', 'r') as config_file:
-    config = json.load(config_file)
-
-leopard_key=config.get('LEOPARD_KEY', None)
-openai_key=config.get('OPENAI_KEY', None)
-unsplash_key=config.get('UNSPLASH_KEY', None)
+load_dotenv()
+leopard_key = os.environ.get('LEOPARD_KEY')
+openai_key = os.environ.get('OPENAI_KEY')
+unsplash_key = os.environ.get('UNSPLASH_KEY')
 
 leopard = pvleopard.create(access_key=leopard_key)
 ffmpeg_params = ['-c:v', 'h264_videotoolbox']
