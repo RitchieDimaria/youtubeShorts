@@ -1,14 +1,14 @@
-from flask import Flask, Response, send_file
+from flask import Flask, Response, send_file, request
 from flask_cors import CORS
 from subprocess import Popen,PIPE
 import re
 
 app = Flask(__name__)
 CORS(app)
-def generate_video_with_progress():
+def generate_video_with_progress(param):
 
     command = [
-        'python', 'script.py'
+        'python', 'script.py', param
     ]
     process = Popen(command, stderr=PIPE, universal_newlines=True)
     
@@ -28,8 +28,10 @@ def generate_video_with_progress():
 
 @app.route('/generate_video', methods=['GET'])
 def generate_video():
-    
-    return Response(generate_video_with_progress(), content_type='text/event-stream')
+    param = request.args.get('about')
+    if param is None:
+        param = 'anything'
+    return Response(generate_video_with_progress(param), content_type='text/event-stream')
 
 @app.route('/download_video', methods=['GET'])
 def download_video():

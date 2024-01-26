@@ -2,6 +2,7 @@
 from openai import OpenAI
 import os 
 import requests
+import sys
 
 ffmpeg_path = "./"  # Replace with the actual path
 
@@ -36,13 +37,13 @@ leopard = pvleopard.create(access_key=leopard_key)
 ffmpeg_params = ['-c:v', 'h264_videotoolbox']
 
 
-def gen_interesting_fact():
+def gen_interesting_fact(about):
     client = OpenAI(api_key=openai_key)
 
 
     response = client.chat.completions.create(
         model="gpt-3.5-turbo-1106",
-        messages=[{"role": "user", "content": "Tell me an interesting fact in a small paragraph. If spoken it should last between 30-45 seconds. Start it with 'Did you know,'"}],
+        messages=[{"role": "user", "content": "Tell me an interesting fact about {} in a small paragraph. If spoken it should last between 30-45 seconds. Start it with 'Did you know,'".format(about)}],
         max_tokens=240)
 
     # Access the generated response
@@ -189,7 +190,7 @@ def add_images(video_clip,image_urls, duration, num_images):
     return video_clip
 
     
-text = gen_interesting_fact()
+text = gen_interesting_fact(sys.argv[1])
 image_urls = []
 num_images = 4
 parts = split_list(extract_keywords(text),num_images)
