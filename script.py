@@ -4,11 +4,10 @@ import os
 import requests
 import sys
 from dotenv import load_dotenv
-
-ffmpeg_path = "./"  # Replace with the actual path
+import boto3
 
 # Set the IMAGEIO_FFMPEG_EXE environment variable
-os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
+os.environ["IMAGEIO_FFMPEG_EXE"] = "./"
 
 from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, ImageClip, CompositeVideoClip
 from moviepy.config import change_settings
@@ -31,10 +30,12 @@ load_dotenv()
 leopard_key = os.environ.get('LEOPARD_KEY')
 openai_key = os.environ.get('OPENAI_KEY')
 unsplash_key = os.environ.get('UNSPLASH_KEY')
+aws_access_key = os.environ.get('AWS_ACCESS_KEY')
+aws_secret_key = os.environ.get('AWS_SECRET_KEY')
 
 leopard = pvleopard.create(access_key=leopard_key)
 ffmpeg_params = ['-c:v', 'h264_videotoolbox']
-
+bucket_name = 'youtubeshort'
 
 def gen_interesting_fact(about):
     client = OpenAI(api_key=openai_key)
@@ -188,7 +189,8 @@ def add_images(video_clip,image_urls, duration, num_images):
     video_clip = CompositeVideoClip([video_clip] + image_clips)
     return video_clip
 
-    
+s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
+
 text = gen_interesting_fact(sys.argv[1])
 image_urls = []
 num_images = 4
