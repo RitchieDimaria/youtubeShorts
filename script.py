@@ -1,21 +1,27 @@
 
 from openai import OpenAI
 import os 
+from io import BytesIO
 import requests
 import sys
 from dotenv import load_dotenv
+import tempfile
 import boto3
+from moviepy.config import change_settings
 
 # Set the IMAGEIO_FFMPEG_EXE environment variable
 os.environ["IMAGEIO_FFMPEG_EXE"] = "./"
+absffmpeg = os.path.abspath("./")
+os.environ["PATH"] += os.pathsep + absffmpeg
+from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, ImageClip, CompositeVideoClip, AudioClip
 
-from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, ImageClip, CompositeVideoClip
-from moviepy.config import change_settings
 from gtts import gTTS 
 import random
 import math
+from pydub import AudioSegment
+from pydub.playback import play
+AudioSegment.Converter = absffmpeg
 import pvleopard
-import json
 import time
 import nltk
 from nltk import word_tokenize
@@ -37,8 +43,12 @@ leopard = pvleopard.create(access_key=leopard_key)
 ffmpeg_params = ['-c:v', 'h264_videotoolbox']
 bucket_name = 'youtubeshort'
 
+client = OpenAI(api_key=openai_key)
+def upload_s3(data_to_upload,bucket_name, s3_path):
+    stream = BytesIO()
+    s3.upload_fileobj(stream, bucket_name, s3_path)
+
 def gen_interesting_fact(about):
-    client = OpenAI(api_key=openai_key)
 
 
     response = client.chat.completions.create(
@@ -53,12 +63,17 @@ def gen_interesting_fact(about):
 
 def tts(text):
     tts_obj = gTTS(text=text, lang='en', slow=False)
-    tts_obj.save("assets/test.mp3") 
+    mp3_fp = BytesIO()
+    tts_obj.write_to_fp(mp3_fp)
+    mp3_fp.seek(0)
+    audio_segment = AudioSegment.from_mp3(mp3_fp)
+    #audio_segment = audio_segment.speedup(playback_speed=1.25)
+    audio_clip = AudioClip(lambda t: audio_segment.get_array_of_samples(), duration=audio_segment.duration_seconds)
+    return audio_clip,audio_segment
     #audio = AudioSegment.from_mp3("assets/test.mp3")
    #audio.speedup(playback_speed=1.5) # speed up by 1.5x
     # export to mp3
     #final.export("test.mp3", format="mp3")
-    time.sleep(2)
 
 def crop_center(video_clip, target_ratio):
     # Calculate the current aspect ratio of the video clip
@@ -81,8 +96,18 @@ def get_audio_clip(file_path):
     audio_clip = AudioFileClip(file_path)
     return audio_clip
 
-def transcribe(voice_path):
-    transcript, words = leopard.process_file(voice_path)
+def transcribe(audio):
+
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        # Write the audio content to the temporary file
+        audio.export(temp_file, format="mp3")
+        temp_file.flush()  # Flush the buffer to ensure data is written to disk
+
+        # Perform the transcription using the API function that requires a file path
+        transcript, words = leopard.process_file(temp_file.name)
+
+    temp_file.close()
+    
     return(words)
 
 def parkour_clip(length):
@@ -191,29 +216,31 @@ def add_images(video_clip,image_urls, duration, num_images):
 
 s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
 
-text = gen_interesting_fact(sys.argv[1])
+text = "Did you know, Greek mythology contains stories of gods, goddesses, and heroes that were believed to live on Mount Olympus? The ancient Greeks believed that Mount Olympus was the home of the twelve major gods and goddesses, including Zeus, Hera, and Athena. The myths and legends of Greek mythology have had a significant impact on Western culture, influencing literature, art, and even modern-day language. Many of the famous ancient Greek heroes, such as Hercules and Achilles, also originated from these captivating myths. Greek mythology continues to be an enduring and influential part of our cultural heritage." #gen_interesting_fact(sys.argv[1])
 image_urls = []
 num_images = 4
 parts = split_list(extract_keywords(text),num_images)
 target_aspect_ratio = 9 / 16
 
-for i in range(num_images):
-    image_urls.append(fetch_image(parts[i]))
+#for i in range(num_images):
+    #image_urls.append(fetch_image(parts[i]))
 
-tts(text)
-audio_clip = get_audio_clip("assets/test.mp3")
+audio_clip,audioSeg = tts(text)
 duration = math.floor(audio_clip.duration) +1
-transcript = transcribe("assets/test.mp3")
-unedited_clip = parkour_clip(duration)
-image_clip = add_images(unedited_clip,image_urls,duration,num_images)
-print("adding captions...")
-captioned_clip = add_captions(transcript,image_clip)
-print("adding audio...")
-captioned_clip = captioned_clip.set_audio(audio_clip)
-captioned_clip.write_videofile("./here.mp4", codec='libx264', audio_codec='aac',threads=4,ffmpeg_params=ffmpeg_params)
+transcript = transcribe(audioSeg)
+print(transcript)
+print("dude this should print lma- \n print me pls")
+#unedited_clip = parkour_clip(duration)
+#image_clip = add_images(unedited_clip,image_urls,duration,num_images)
+#print("adding captions...")
+#captioned_clip = add_captions(transcript,image_clip)
+#print("adding audio...")
+#captioned_clip = captioned_clip.set_audio(audio_clip)
+#captioned_clip.write_videofile("./here.mp4", codec='libx264', audio_codec='aac',threads=4,ffmpeg_params=ffmpeg_params)
 
-
-audio_clip.close()
-captioned_clip.close()
+audioSeg.export("output_audio.mp3", format="mp3")
+leopard.delete()
+#audio_clip.close()
+#captioned_clip.close()
 
 #Demonic
