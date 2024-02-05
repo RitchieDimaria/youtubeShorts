@@ -67,9 +67,9 @@ def tts(text):
     tts_obj.write_to_fp(mp3_fp)
     mp3_fp.seek(0)
     audio_segment = AudioSegment.from_mp3(mp3_fp)
-    #audio_segment = audio_segment.speedup(playback_speed=1.25)
-    audio_clip = AudioClip(lambda t: audio_segment.get_array_of_samples(), duration=audio_segment.duration_seconds)
-    return audio_clip,audio_segment
+
+    audio_segment = audio_segment.speedup(playback_speed=1.25)
+    return audio_segment
     #audio = AudioSegment.from_mp3("assets/test.mp3")
    #audio.speedup(playback_speed=1.5) # speed up by 1.5x
     # export to mp3
@@ -105,14 +105,25 @@ def transcribe(audio):
 
         # Perform the transcription using the API function that requires a file path
         transcript, words = leopard.process_file(temp_file.name)
+        leopard.delete()
+        audio_clip = AudioFileClip(temp_file.name)
 
     temp_file.close()
     
-    return(words)
+    return(audio_clip,words)
 
-def parkour_clip(length):
+def parkour_clip(s3,length):
 
-    video_clip = VideoFileClip("assets/minecraft.mp4")
+    response = s3.get_object(Bucket=bucket_name, Key='assets/minecraft.mp4')
+    video_content = response['Body'].read()
+
+    with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
+        temp_file.write(video_content)
+        temp_file.flush()
+
+    # Create a VideoFileClip object from the temporary file
+    video_clip = VideoFileClip(temp_file.name)
+    temp_file.close()
 
     video_duration = video_clip.duration
 
@@ -225,22 +236,29 @@ target_aspect_ratio = 9 / 16
 #for i in range(num_images):
     #image_urls.append(fetch_image(parts[i]))
 
-audio_clip,audioSeg = tts(text)
+audioSeg = tts(text)
+audio_clip, transcript = transcribe(audioSeg)
 duration = math.floor(audio_clip.duration) +1
-transcript = transcribe(audioSeg)
 print(transcript)
-print("dude this should print lma- \n print me pls")
-#unedited_clip = parkour_clip(duration)
+unedited_clip = parkour_clip(s3, duration)
 #image_clip = add_images(unedited_clip,image_urls,duration,num_images)
 #print("adding captions...")
-#captioned_clip = add_captions(transcript,image_clip)
-#print("adding audio...")
-#captioned_clip = captioned_clip.set_audio(audio_clip)
-#captioned_clip.write_videofile("./here.mp4", codec='libx264', audio_codec='aac',threads=4,ffmpeg_params=ffmpeg_params)
+captioned_clip = add_captions(transcript,unedited_clip)
+print("adding audio...")
+captioned_clip = captioned_clip.set_audio(audio_clip)
 
-audioSeg.export("output_audio.mp3", format="mp3")
-leopard.delete()
-#audio_clip.close()
-#captioned_clip.close()
+
+with tempfile.NamedTemporaryFile(suffix='.mp4') as temp_file:
+    captioned_clip.write_videofile(temp_file.name, codec='libx264', audio_codec='aac', threads=4,ffmpeg_params=ffmpeg_params)
+    
+    key = 'here2.mp4'
+    response = s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body=temp_file,
+    )
+time.sleep(3)
+audio_clip.close()
+captioned_clip.close()
 
 #Demonic
