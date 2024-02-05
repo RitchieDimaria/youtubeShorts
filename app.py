@@ -33,6 +33,9 @@ def generate_video():
         param = 'anything'
     return Response(generate_video_with_progress(param), content_type='text/event-stream')
 
+@app.route('/ping',methods=['GET'])
+def ping_server():
+    return 'Server is up and running!'
 @app.route('/download_video', methods=['GET'])
 def download_video():
     video_path = './here.mp4'  
@@ -40,4 +43,4 @@ def download_video():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=80)
