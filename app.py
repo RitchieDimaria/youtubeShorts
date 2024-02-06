@@ -28,6 +28,7 @@ def generate_video_with_progress(param):
 
 @app.route('/generate_video', methods=['GET'])
 def generate_video():
+    print(request)
     param = request.args.get('about')
     if param is None:
         param = 'anything'
@@ -35,9 +36,11 @@ def generate_video():
 
 @app.route('/ping',methods=['GET'])
 def ping_server():
+    print(request)
     return 'Server is up and running!'
 @app.route('/download_video', methods=['GET'])
 def download_video():
+    print(request)
     video_path = './here.mp4'  
     return send_file(video_path, as_attachment=True, download_name='AI_video.mp4')
 
