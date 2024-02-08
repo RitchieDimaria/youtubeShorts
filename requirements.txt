@@ -34,3 +34,4 @@ rfc3986-validator
 s3fs 
 s3transfer==0.10.0
 pvleopard==2.0.1
+gunicorn
