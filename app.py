@@ -14,6 +14,8 @@ def generate_video_with_progress(param):
     
     while True:
         line = process.stderr.readline()
+       
+        print(line) # For debugging
         if not line:
             break
         match = re.search(r"(\d+\.?\d*)%", line)
