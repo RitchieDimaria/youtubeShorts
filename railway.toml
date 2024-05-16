@@ -1,2 +1,2 @@
 [build]
-dependencies = [{ name = "ffmpeg", version = "4.4" }]
+dependencies = [{ name = "ffmpeg", version = "4.4" },{ name = "ffprobe", version = "4.4" }]
