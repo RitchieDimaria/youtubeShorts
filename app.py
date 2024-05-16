@@ -32,7 +32,12 @@ def generate_video():
     param = request.args.get('about')
     if param is None:
         param = 'anything'
-    return Response(generate_video_with_progress(param), content_type='text/event-stream')
+    try:
+        response = Response(generate_video_with_progress(param), content_type='text/event-stream')
+        return response
+    except Exception as e:
+        print(e)
+        return('Something went wrong')
 
 @app.route('/ping',methods=['GET'])
 def ping_server():

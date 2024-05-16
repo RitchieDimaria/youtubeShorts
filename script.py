@@ -1,4 +1,3 @@
-
 from openai import OpenAI
 import os 
 from io import BytesIO
@@ -7,12 +6,14 @@ import sys
 from dotenv import load_dotenv
 import tempfile
 import boto3
-from moviepy.config import change_settings
+
 
 # Set the IMAGEIO_FFMPEG_EXE environment variable
 os.environ["IMAGEIO_FFMPEG_EXE"] = "./"
 absffmpeg = os.path.abspath("./")
 os.environ["PATH"] += os.pathsep + absffmpeg
+
+from moviepy.config import change_settings
 from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, ImageClip, CompositeVideoClip, AudioClip
 
 from gtts import gTTS 
@@ -23,9 +24,6 @@ from pydub.playback import play
 AudioSegment.Converter = absffmpeg
 import pvleopard
 import time
-import nltk
-from nltk import word_tokenize
-from nltk.corpus import stopwords
 
 #nltk.download('punkt')
 #nltk.download('stopwords')
@@ -201,15 +199,16 @@ def split_list(input_list, num_splits):
         splits.append(split)
 
     return splits
-def extract_keywords(text):
+
+#def extract_keywords(text):
     # Tokenize the text
-    words = word_tokenize(text.lower())
+#    words = word_tokenize(text.lower())
 
     # Remove stopwords (common words that may not contribute much to meaning)
-    stop_words = set(stopwords.words('english'))
-    filtered_words = [word for word in words if word.isalnum() and word not in stop_words]
+#    stop_words = set(stopwords.words('english'))
+#    filtered_words = [word for word in words if word.isalnum() and word not in stop_words]
 
-    return filtered_words
+#    return filtered_words
 
 def add_images(video_clip,image_urls, duration, num_images):
     img_duration = (duration/num_images) - 1
@@ -227,10 +226,10 @@ def add_images(video_clip,image_urls, duration, num_images):
 
 s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
 
-text = "Did you know, Greek mythology contains stories of gods, goddesses, and heroes that were believed to live on Mount Olympus? The ancient Greeks believed that Mount Olympus was the home of the twelve major gods and goddesses, including Zeus, Hera, and Athena. The myths and legends of Greek mythology have had a significant impact on Western culture, influencing literature, art, and even modern-day language. Many of the famous ancient Greek heroes, such as Hercules and Achilles, also originated from these captivating myths. Greek mythology continues to be an enduring and influential part of our cultural heritage." #gen_interesting_fact(sys.argv[1])
+text = gen_interesting_fact(sys.argv[1])
 image_urls = []
 num_images = 4
-parts = split_list(extract_keywords(text),num_images)
+parts = split_list(text,num_images)
 target_aspect_ratio = 9 / 16
 
 #for i in range(num_images):
