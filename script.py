@@ -21,7 +21,7 @@ import random
 import math
 from pydub import AudioSegment
 from pydub.playback import play
-AudioSegment.Converter = absffmpeg
+#AudioSegment.Converter = absffmpeg
 import pvleopard
 import time
 
@@ -68,10 +68,7 @@ def tts(text):
 
     audio_segment = audio_segment.speedup(playback_speed=1.25)
     return audio_segment
-    #audio = AudioSegment.from_mp3("assets/test.mp3")
-   #audio.speedup(playback_speed=1.5) # speed up by 1.5x
-    # export to mp3
-    #final.export("test.mp3", format="mp3")
+
 
 def crop_center(video_clip, target_ratio):
     # Calculate the current aspect ratio of the video clip
@@ -112,16 +109,15 @@ def transcribe(audio):
 
 def parkour_clip(s3,length):
 
-    response = s3.get_object(Bucket=bucket_name, Key='assets/minecraft.mp4')
-    video_content = response['Body'].read()
+    #response = s3.get_object(Bucket=bucket_name, Key='assets/minecraft.mp4')
+    #video_content = response['Body'].read()
 
-    with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
-        temp_file.write(video_content)
-        temp_file.flush()
+    #with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
+    #    temp_file.write(video_content)
+    #    temp_file.flush()
 
     # Create a VideoFileClip object from the temporary file
-    video_clip = VideoFileClip(temp_file.name)
-    temp_file.close()
+    video_clip = VideoFileClip("assets/minecraft.mp4")
 
     video_duration = video_clip.duration
 
@@ -245,7 +241,6 @@ unedited_clip = parkour_clip(s3, duration)
 captioned_clip = add_captions(transcript,unedited_clip)
 print("adding audio...")
 captioned_clip = captioned_clip.set_audio(audio_clip)
-
 
 with tempfile.NamedTemporaryFile(suffix='.mp4') as temp_file:
     captioned_clip.write_videofile(temp_file.name, codec='libx264', audio_codec='aac', threads=4,ffmpeg_params=ffmpeg_params)
