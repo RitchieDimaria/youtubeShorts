@@ -13,9 +13,15 @@ def generate_video_with_progress(param):
     process = Popen(command, stderr=PIPE, universal_newlines=True)
     
     while True:
-        line = process.stderr.readline()
+        try:
+
+            line = process.stderr.readline()
+        except Exception as e:
+            print("SOMETHING BROKE\n\n")
+            print(e)
+
        
-        print(line) # For debugging
+        #print(line) # For debugging
         if not line:
             break
         match = re.search(r"(\d+\.?\d*)%", line)

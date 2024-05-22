@@ -8,11 +8,8 @@ import tempfile
 import boto3
 
 
-# Set the IMAGEIO_FFMPEG_EXE environment variable
-os.environ["IMAGEIO_FFMPEG_EXE"] = "./"
-absffmpeg = os.path.abspath("./")
-os.environ["PATH"] += os.pathsep + absffmpeg
 
+import moviepy.config as cf
 from moviepy.config import change_settings
 from moviepy.editor import VideoFileClip,AudioFileClip, TextClip, ImageClip, CompositeVideoClip, AudioClip
 
@@ -24,11 +21,10 @@ from pydub.playback import play
 #AudioSegment.Converter = absffmpeg
 import pvleopard
 import time
-
+cf.change_settings({"IMAGEMAGICK_BINARY": "/usr/bin/convert"})
 #nltk.download('punkt')
 #nltk.download('stopwords')
 
-change_settings({"FFMPEG_BINARY": "./ffmpeg"})
 
 load_dotenv()
 leopard_key = os.environ.get('LEOPARD_KEY')
@@ -38,7 +34,7 @@ aws_access_key = os.environ.get('AWS_ACCESS_KEY')
 aws_secret_key = os.environ.get('AWS_SECRET_KEY')
 
 leopard = pvleopard.create(access_key=leopard_key)
-ffmpeg_params = ['-c:v', 'h264_videotoolbox']
+ffmpeg_params = ['-c:v', 'libx264']
 bucket_name = 'youtubeshort'
 
 client = OpenAI(api_key=openai_key)
@@ -242,15 +238,7 @@ captioned_clip = add_captions(transcript,unedited_clip)
 print("adding audio...")
 captioned_clip = captioned_clip.set_audio(audio_clip)
 
-with tempfile.NamedTemporaryFile(suffix='.mp4') as temp_file:
-    captioned_clip.write_videofile(temp_file.name, codec='libx264', audio_codec='aac', threads=4,ffmpeg_params=ffmpeg_params)
-    
-    key = 'here2.mp4'
-    response = s3.put_object(
-        Bucket=bucket_name,
-        Key=key,
-        Body=temp_file,
-    )
+captioned_clip.write_videofile("here.mp4", codec='libx264', audio_codec='aac', threads=4,ffmpeg_params=ffmpeg_params)
 time.sleep(3)
 audio_clip.close()
 captioned_clip.close()
