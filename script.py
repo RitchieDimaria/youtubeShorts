@@ -52,7 +52,7 @@ def gen_interesting_fact(about):
 
     # Access the generated response
     generated_text = response.choices[0].message.content
-    print(generated_text)
+    
     return(generated_text)
 
 def tts(text):
@@ -103,7 +103,7 @@ def transcribe(audio):
     
     return(audio_clip,words)
 
-def parkour_clip(s3,length):
+def parkour_clip(length):
 
     #response = s3.get_object(Bucket=bucket_name, Key='assets/minecraft.mp4')
     #video_content = response['Body'].read()
@@ -216,8 +216,9 @@ def add_images(video_clip,image_urls, duration, num_images):
     video_clip = CompositeVideoClip([video_clip] + image_clips)
     return video_clip
 
-s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
+#s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
 
+print("Generating interesting fact...",file=sys.stderr)
 text = gen_interesting_fact(sys.argv[1])
 image_urls = []
 num_images = 4
@@ -230,14 +231,14 @@ target_aspect_ratio = 9 / 16
 audioSeg = tts(text)
 audio_clip, transcript = transcribe(audioSeg)
 duration = math.floor(audio_clip.duration) +1
-print(transcript)
-unedited_clip = parkour_clip(s3, duration)
+unedited_clip = parkour_clip( duration)
 #image_clip = add_images(unedited_clip,image_urls,duration,num_images)
-#print("adding captions...")
+print("Adding captions...",file=sys.stderr)
 captioned_clip = add_captions(transcript,unedited_clip)
-print("adding audio...")
+print("Adding audio...",file=sys.stderr)
 captioned_clip = captioned_clip.set_audio(audio_clip)
 
+print("Compiling video...",file=sys.stderr)
 captioned_clip.write_videofile("here.mp4", codec='libx264', audio_codec='aac', threads=4,ffmpeg_params=ffmpeg_params)
 time.sleep(3)
 audio_clip.close()

@@ -1,37 +1,47 @@
-from flask import Flask, Response, send_file, request
+from flask import Flask, Response, send_file, request, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from subprocess import Popen,PIPE
+import threading 
+import time
 import re
 
 app = Flask(__name__)
 CORS(app)
-def generate_video_with_progress(param):
+socketio = SocketIO(app)
+
+progress_data = {}
+
+def generate_video_with_progress(task_id, param):
 
     command = [
         'python', 'script.py', param
     ]
-    process = Popen(command, stderr=PIPE, universal_newlines=True)
+    process = Popen(command, stderr=PIPE, text=True)
     
     while True:
-        try:
-
-            line = process.stderr.readline()
-        except Exception as e:
-            print("SOMETHING BROKE\n\n")
-            print(e)
+        line = process.stderr.readline()
+        if line:
+            progress_data[task_id] = line
+            print(progress_data[task_id])
+            print("fuck you")
+            match = re.search(r"(\d+\.?\d*)%",line.strip())
+            if match:
+                progress_data[task_id] = float(match.group(1))
 
        
         #print(line) # For debugging
         if not line:
             break
-        match = re.search(r"(\d+\.?\d*)%", line)
-        if match:
-            progress_percentage = float(match.group(1))
-            yield f"data: {progress_percentage}%\n\n"
+        #match = re.search(r"(\d+\.?\d*)%", line)
+
+        #if match :
+        #    print(match)
+        #    progress_percentage = float(match.group(1))
+        #    yield f"data: {progress_percentage}%\n\n"
 
     process.wait()
-    yield "data: 100%\n\n"
-    yield "event: complete\n\n"
+    progress_data[task_id] = "Video generation complete."
     print("Complete event sent")
 
 @app.route('/generate_video', methods=['GET'])
@@ -41,8 +51,11 @@ def generate_video():
     if param is None:
         param = 'anything'
     try:
-        response = Response(generate_video_with_progress(param), content_type='text/event-stream')
-        return response
+        task_id = str(time.time())
+        thread = threading.Thread(target=generate_video_with_progress,args=[task_id,param])
+        thread.start()
+        return jsonify({'task_id': task_id, 'status': 'Video generation started'}), 202
+
     except Exception as e:
         print(e)
         return('Something went wrong')
@@ -57,6 +70,12 @@ def download_video():
     video_path = './here.mp4'  
     return send_file(video_path, as_attachment=True, download_name='AI_video.mp4')
 
+@app.route('/progress/<task_id>', methods=['GET'])
+def get_progress(task_id):
+    print(task_id)
+    print(progress_data)
+    progress = progress_data.get(task_id,"null")
+    return jsonify({'task_id': task_id, 'progress': progress})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
