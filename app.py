@@ -12,6 +12,21 @@ socketio = SocketIO(app)
 
 progress_data = {}
 
+lock = threading.Lock()
+
+def update_progress(task_id, progress):
+    # Acquire the lock before accessing the dictionary
+    with lock:
+        # Update the progress for the task ID
+        progress_data[task_id] = progress
+
+# Function to read progress atomically
+def read_progress(task_id):
+    # Acquire the lock before accessing the dictionary
+    with lock:
+        # Read the progress for the task ID
+        return progress_data.get(task_id, "null")
+
 def generate_video_with_progress(task_id, param):
 
     command = [
@@ -19,20 +34,20 @@ def generate_video_with_progress(task_id, param):
     ]
     process = Popen(command, stderr=PIPE, text=True)
     
-    while True:
-        line = process.stderr.readline()
+    for line in process.stderr:
         if line:
-            progress_data[task_id] = line
-            print(progress_data[task_id])
-            print("fuck you")
+            update_progress(task_id,line)
+            #print(progress_data[task_id])
             match = re.search(r"(\d+\.?\d*)%",line.strip())
             if match:
-                progress_data[task_id] = float(match.group(1))
 
+                pro = float(match.group(1))
+                
+                update_progress(task_id,pro)
        
         #print(line) # For debugging
-        if not line:
-            break
+        #if not line:
+           # break
         #match = re.search(r"(\d+\.?\d*)%", line)
 
         #if match :
@@ -73,8 +88,9 @@ def download_video():
 @app.route('/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
     print(task_id)
-    print(progress_data)
-    progress = progress_data.get(task_id,"null")
+    #print(progress_data)
+    progress = read_progress(task_id)
+    print(progress)
     return jsonify({'task_id': task_id, 'progress': progress})
 
 if __name__ == '__main__':
